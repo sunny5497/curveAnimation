@@ -1,13 +1,14 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_project/ScaleAnimation.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({Key key}) : super(key: key);
 
   // This widget is the root of your application.
   @override
@@ -26,13 +27,15 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(
+        title: "",
+      ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+  const MyHomePage({Key key, @required this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -61,27 +64,23 @@ class _MyHomePageState extends State<MyHomePage> {
             const Center(
               child: Divider(),
             ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const BallWidget(),
-                  const BallWidget(),
-                  const BallWidget(),
-                ],
-              ),
+            BallWidget(
+              spacing: 0,
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const BallWidget(),
-                  const BallWidget(),
-                  const BallWidget(),
-                ],
-              ),
+            BallWidget(
+              spacing: 40,
+            ),
+            BallWidget(
+              spacing: 80,
+            ),
+            BallWidget(
+              spacing: MediaQuery.of(context).size.width - 120,
+            ),
+            BallWidget(
+              spacing: MediaQuery.of(context).size.width - 80,
+            ),
+            BallWidget(
+              spacing: MediaQuery.of(context).size.width - 40,
             ),
           ],
         ));
@@ -89,7 +88,12 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class BallWidget extends StatefulWidget {
-  const BallWidget({Key? key}) : super(key: key);
+  bool alignRight = false;
+  double spacing;
+  double width;
+  BallWidget({this.alignRight, this.spacing, Key key}) : super(key: key) {
+    this.width = 40;
+  }
 
   @override
   State<BallWidget> createState() => _BallWidgetState();
@@ -98,7 +102,7 @@ class BallWidget extends StatefulWidget {
 class _BallWidgetState extends State<BallWidget> {
   Offset offset = const Offset(0.0, 0.0);
   Offset lastoffset = const Offset(0.0, 0.0);
-  Animatable tween = Tween(begin: 0, end: 0).chain(
+  Animatable tween = Tween(begin: 0, end: 1).chain(
       CurveTween(curve: Curves.easeOut)
           .chain(CurveTween(curve: Curves.easeOut)));
   var t = 0.0;
@@ -106,26 +110,50 @@ class _BallWidgetState extends State<BallWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onPanUpdate: (value) {
-        if (t < 0.9) {
-          t = t + .01;
+    return Positioned(
+      top: -val * SineCurve().transformInternal(t),
+      bottom: 0,
+      left:t * getWidth(context)==0? widget.spacing + t * getWidth(context):t * getWidth(context),
+      
+      child: GestureDetector(
+        onHorizontalDragUpdate: (value) {
+          if (value.primaryDelta > 0) {
+            if ((value.globalPosition.dx - offset.dx) > 10) {
+              if (t < 0.9) {
+                t = t + .01;
 
-          val = -SineCurve().transformInternal(t) * MediaQuery.of(context).size.width;
+                val = -SineCurve().transformInternal(t) *
+                   getWidth(context);
 
-          setState(() {
-            offset = Offset(t * MediaQuery.of(context).size.width, val * SineCurve().transformInternal(t));
-          });
-        }
-        // setState(() {
-        //   lastoffset = value.localPosition;
-        // });
-      },
-      child: Transform.translate(
-        offset: offset,
+                setState(() {
+                  offset = Offset(t * getWidth(context),
+                      val * SineCurve().transformInternal(t));
+                });
+              }
+            }
+          } else {
+            if (t > 0.0) {
+              if ((value.globalPosition.dx - offset.dx).abs() > 10) {
+                t = t - .01;
+
+                val = -SineCurve().transformInternal(t) *
+                   getWidth(context);
+
+                setState(() {
+                  offset = Offset(t * getWidth(context),
+                      val * SineCurve().transformInternal(t));
+                });
+              }
+            }
+          }
+
+          // setState(() {
+          //   lastoffset = value.localPosition;
+          // });
+        },
         child: Container(
-          height: 40,
-          width: 40,
+          height: widget.width,
+          width: widget.width,
           decoration: const BoxDecoration(
             color: Colors.red,
             shape: BoxShape.circle,
@@ -134,6 +162,8 @@ class _BallWidgetState extends State<BallWidget> {
       ),
     );
   }
+
+  double getWidth(BuildContext context) => MediaQuery.of(context).size.width;
 }
 
 class SineCurve extends Curve {
@@ -144,7 +174,7 @@ class SineCurve extends Curve {
   // t = x
   @override
   double transformInternal(double t) {
-    var val = sin(t);
+    var val = sin(1.55 * t) * .50;
     return val; //f(x)
   }
 }
